@@ -1,4 +1,5 @@
 import random
+import time
 
 import pygame
 
@@ -19,16 +20,36 @@ blockduko.print_board(board)
 queue = blockduko.get_queue()
 
 # main loop
+moves = 0
 running = True
 while running:
     # event handling
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+        # space bar pressed
+        doit = False
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            doit = True
         # button click
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if move_button_origin[0] <= event.pos[0] <= move_button_origin[0]+button_size[0] and move_button_origin[1] <= event.pos[1] <= move_button_origin[1]+button_size[1]:
+        if event.type == pygame.MOUSEBUTTONDOWN or doit:
+            if doit or move_button_origin[0] <= event.pos[0] <= move_button_origin[0]+button_size[0] and move_button_origin[1] <= event.pos[1] <= move_button_origin[1]+button_size[1]:
                 board = blockduko.make_ai_move(board, queue)
+                moves += 1
+                if board == None:
+                    print("Game over")
+                    pygame.draw.rect(screen, (255, 0, 0), (move_button_origin[0], move_button_origin[1], button_size[0], button_size[1]))
+                    # write "Game Over" on the button
+                    button_text = "Game Over"
+                    font = pygame.font.Font(None, 36)
+                    screen.blit(font.render(button_text, True, (255, 255, 255)), (move_button_origin[0]+button_size[0]/2-font.size(button_text)[0]/2, move_button_origin[1]+button_size[1]/2-font.size(button_text)[1]/2))
+
+                    pygame.display.flip()
+                    time.sleep(5)
+                    pygame.event.clear() # discard all buttons pressed while paused
+                    board = [[False for _ in range(9)] for __ in range(9)]
+                    queue = blockduko.get_queue()
+                    moves = 0
                 if len(queue) == 0:
                     queue = blockduko.get_queue()
                 # blockduko.printBoard(board)
@@ -46,9 +67,13 @@ while running:
 
     for x in range(9):
         for y in range(9):
-            pygame.draw.rect(screen, (40, 40, 40), (board_origin[0]+square_size*x, board_origin[1]+square_size*y, square_size+1, square_size+1), 1)
+            pygame.draw.rect(screen, (150, 150, 150), (board_origin[0]+square_size*x, board_origin[1]+square_size*y, square_size+1, square_size+1), 1)
             if board[x][y]:
                 pygame.draw.rect(screen, (52, 186, 235), (board_origin[0]+square_size*x+1, board_origin[1]+square_size*y+1, square_size-1, square_size-1), 0)
+
+    for x in range(3):
+        for y in range(3):
+            pygame.draw.rect(screen, (0, 0, 0), (board_origin[0]+square_size*x*3, board_origin[1]+square_size*y*3, square_size*3+1, square_size*3+1), 1)
 
     # draw the queue
     # print("---")
@@ -72,5 +97,5 @@ while running:
     pygame.draw.rect(screen, (52, 186, 235), button)
     font = pygame.font.Font(None, 36)
     screen.blit(font.render(button_text, True, (255, 255, 255)), (move_button_origin[0]+button_size[0]/2-font.size(button_text)[0]/2, move_button_origin[1]+button_size[1]/2-font.size(button_text)[1]/2))
-
+    screen.blit(font.render(str(moves), True, (0, 0, 0)), (move_button_origin[0]-10-font.size(str(moves))[0], move_button_origin[1]+button_size[1]/2-font.size(str(moves))[1]/2))
     pygame.display.flip()

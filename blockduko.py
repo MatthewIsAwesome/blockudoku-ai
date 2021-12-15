@@ -3,7 +3,7 @@ import random
 
 board = [[False]*9]*9
 
-pieces = [
+PIECES = [
     [ # Single
         [True]
     ],
@@ -95,7 +95,7 @@ def get_queue(length=3):
     gets a queue of pieces
     rotates each piece randomly
     """
-    return [__rotate__(random.choice(pieces), repeat=random.choice((0, 1, 2, 3))) for i in range(length)] 
+    return [__rotate__(random.choice(PIECES), repeat=random.choice((0, 1, 2, 3))) for i in range(length)] 
 
 # def possible_perms(board, pieces):
 #     """
@@ -126,7 +126,10 @@ def place(board, piece, i, j):
     newBoard = copy.deepcopy(board)
     for x in range(len(piece)):
         for y in range(len(piece[0])):
-            newBoard[i+x][j+y] = piece[x][y] or newBoard[x][y]
+            newBoard[i+x][j+y] = piece[x][y] or newBoard[i+x][j+y]
+    
+    clean(newBoard)
+
     return newBoard
 
 def clean(board):
@@ -175,6 +178,76 @@ def check_piece_collision(board, piece, i, j):
                 return True
     return False
 
+def get_valid_moves(board, piece):
+    """
+    Gets all possible moves for a given piece
+    """
+    moves = []
+    for i in range(len(board)-len(piece)+1):
+        for j in range(len(board[0])-len(piece[0])+1):
+            if not check_piece_collision(board, piece, i, j):
+                moves.append((i, j))
+    return moves
+
+def check_piece_collision(board, piece, i, j):
+    """
+    Checks if a piece will collide with the board
+    """
+    for x in range(len(piece)):
+        for y in range(len(piece[0])):
+            if piece[x][y] and board[i+x][j+y]:
+                return True
+    return False
+
+
+def __remove_an_equivalent_piece__(pieces, piece):
+    """
+    Removes all pieces that are equivalent to the given piece
+    """
+    for p in pieces:
+        if p == piece:
+            pieces.remove(p)
+            return
+    print("DIDN'T REMOVE")
+
+def get_best_move(board, piece):
+    bestMove, bestClear = None, 999999
+    moves = get_valid_moves(board, piece)
+    for move in moves:
+        res = place(board, piece, *move)
+        clean(res)
+        clear = sum(sum(row) for row in res)
+        if clear < bestClear:
+            bestMove = move
+            bestClear = clear
+    
+    if bestMove == None:
+        moves = get_valid_moves(board, piece)
+        if len(moves) == 0:
+            return None, None
+        bestMove = random.choice(moves)
+        bestClear = sum(sum(row) for row in place(board, piece, *bestMove))
+    
+    return bestMove, bestClear
+
+def get_best_move_and_piece(board, pieces):
+    if len(pieces) == 1:
+        return pieces[0], *get_best_move(board, pieces[0])
+    
+    bestPiece, bestMove, bestClear = None, None, 999999
+    for piece in pieces:
+        move, res = get_best_move(board, piece)
+        if res is None: # No moves can be made with this piece
+            continue
+
+        if res < bestClear:
+            bestPiece = piece
+            bestMove = move
+            bestClear = res
+    
+    return bestPiece, bestMove, bestClear
+        
+
 def make_ai_move(board, pieces):
     """
     makes the best possible move for a given board state and piece queue
@@ -183,16 +256,32 @@ def make_ai_move(board, pieces):
 
     # piece = pieces.pop(random.randint(0, len(pieces)-1))
 
-    # return place(board, piece, 0, 0)
+    
 
-    raise NotImplementedError
+    if sum([len(get_valid_moves(board, piece)) for piece in pieces]) == 0: # LOSE
+        # print("MOVES",moves)
+        # print("PIECE")
+        # print_board(piece)
+        # print("BOARD")
+        # print_board(board)
+        # while True:
+        #     exec(input("> "))
+        return None
+
+    piece, move, clear = get_best_move_and_piece(board, pieces)
+    pieces.remove(piece)
+    
+    if move == None:
+        return None
+
+    return place(board, piece, *(move))
 
 def main():
     print("Usage: python play.py")
     exit()
     global board
     input("Press enter to continue...")
-    board = place(board, random.choice(pieces), 0, 0)
+    board = place(board, random.choice(PIECES), 0, 0)
     print_board(board)
     main()
 
